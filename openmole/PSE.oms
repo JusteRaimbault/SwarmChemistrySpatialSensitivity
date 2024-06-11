@@ -1,0 +1,54 @@
+
+val seed = Val[Double]
+val generator = Val[String]
+
+val c1avg = Val[Double]
+val c1std = Val[Double]
+val c2avg = Val[Double]
+val c2std = Val[Double]
+val c3avg = Val[Double]
+val c3std = Val[Double]
+
+val model = ScalaTask("""
+  |import scala.util.Random
+  |import swarmchemistry._
+  |import input._
+  |
+  |implicit val rng: Random = new Random(input.seed.toLong)
+  |implicit val model: SwarmChemistry = SwarmChemistry(numberOfIndividualsMax = 100)
+  |
+  |SwarmChemistry.runSwarmChemistry("random:10", input.generator)
+  |
+  |val (c1avg,c1std,c2avg,c2std,c3avg,c3std) = SwarmChemistry.indicators
+  """.stripMargin
+    ) set (
+  (inputs, outputs) += (seed, generator),
+  outputs += (c1avg,c1std,c2avg,c2std,c3avg,c3std)
+)
+
+val purpose = "PSE"
+
+val timestamp = ((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))
+val resdir = (timestamp+"_"+purpose)
+
+val env = LocalEnvironment(12)
+
+
+PSEEvolution(
+  evaluation = model,
+  parallelism = 12,
+  termination = 100000,
+  genome = Seq(
+    seed in (-100000.0,100000.0),
+    generator in Seq("random", "uniform", "split", "zipf")
+  ),
+  objective = Seq(
+    c1avg in (0.0 to 1.0 by 0.1),
+    c1std in (0.0 to 1.0 by 0.1),
+    c2avg in (0.0 to 1.0 by 0.1),
+    c2std in (0.0 to 1.0 by 0.1),
+    c3avg in (0.0 to 1.0 by 0.1),
+    c3std in (0.0 to 1.0 by 0.1)
+  ),
+) on env hook (workDirectory / "pse" / resdir,frequency = 100)
+
