@@ -15,9 +15,9 @@ val model = ScalaTask("""
   |import input._
   |
   |implicit val rng: Random = new Random(input.seed.toLong)
-  |implicit val model: SwarmChemistry = SwarmChemistry(numberOfIndividualsMax = 100)
+  |implicit val model: SwarmChemistry = SwarmChemistry(numberOfIndividualsMax = 200)
   |
-  |SwarmChemistry.runSwarmChemistry("random:10", input.generator)
+  |SwarmChemistry.runSwarmChemistry("random:20", input.generator)
   |
   |val (c1avg,c1std,c2avg,c2std,c3avg,c3std) = SwarmChemistry.indicators
   """.stripMargin
@@ -31,13 +31,14 @@ val purpose = "PSE"
 val timestamp = ((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))
 val resdir = (timestamp+"_"+purpose)
 
-val env = LocalEnvironment(12)
+val env = LocalEnvironment(10)
+//val env = EGIEnvironment("vo.complex-systems.eu",openMOLEMemory = 2000 megabytes)
 
 
 PSEEvolution(
   evaluation = model,
-  parallelism = 12,
-  termination = 100000,
+  parallelism = 10,//12,
+  termination = 1000000,
   genome = Seq(
     seed in (-100000.0,100000.0),
     generator in Seq("random", "uniform", "split", "zipf")
@@ -50,5 +51,5 @@ PSEEvolution(
     c3avg in (0.0 to 1.0 by 0.1),
     c3std in (0.0 to 1.0 by 0.1)
   ),
-) on env hook (workDirectory / "pse" / resdir,frequency = 100)
-
+)on env hook (workDirectory / "pse" / resdir,frequency = 100)
+// by Island(10 minutes) 
