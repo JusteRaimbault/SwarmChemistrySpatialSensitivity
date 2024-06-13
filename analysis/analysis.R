@@ -7,19 +7,43 @@ library(GGally)
 
 source(paste0(Sys.getenv('CS_HOME'),'/Organisation/Models/Utils/R/plots.R'))
 
-resprefix = '20240416_115624_PSE'
+#resprefix = '20240416_115624_PSE' # 494 individuals at generation 1000
+resprefix = '20240612_204324_PSE' # 714 at generation 1900, 758 at 2100
 
-res <- read_csv(file=paste0('openmole/pse/',resprefix,'/population1000.csv'),col_names = T)
+# read old pse format
+#res <- read_csv(file=paste0('openmole/pse/',resprefix,'/population1000.csv'),col_names = T)
+# new format exported from omr
+res <- read_csv(file=paste0('openmole/pse/',resprefix,'.csv'),col_names = T)
+
 names(res)[4] = "Generator"
 
 resdir = paste0('results/',resprefix,'/');dir.create(resdir,recursive = T)
 
 ggsave(
   plot=ggpairs(data=res,columns = c("c1avg","c1std","c2avg","c2std", "c3avg", "c3std"),
-               aes(colour=Generator,alpha=0.4)
-  )+stdtheme,
-  filename =paste0(resdir,"pse-scatterplot_colorGenerator.png"),width=30,height=30,units='cm')
+               aes(colour=Generator,alpha=0.4),
+               # proper column labels: https://github.com/ggobi/ggally/issues/207
+               columnLabels = c("bar(c[1])","sigma~(c[1])","bar(c[2])",'sigma~(c[2])', 'bar(c[3])', 'sigma~(c[3])'), labeller = label_parsed
+  )+scale_x_continuous(breaks = scales::pretty_breaks(n = 3))+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 3))+
+    theme(strip.text = element_text(size=18)),#+stdtheme,
+  filename =paste0(resdir,"pse-scatterplot_colorGenerator.png"),width=25,height=25,units='cm', dpi = 72)
 
+
+# MANOVA to test for statistical differences between generators
+manova(data=res[,c("Generator","c1avg","c1std","c2avg","c2std", "c3avg", "c3std")],
+               formula = cbind(c1avg,c1std,c2avg,c2std, c3avg, c3std)~Generator)
+
+for(indic in c("c1avg","c1std","c2avg","c2std", "c3avg", "c3std")){
+  for(generator1 in unique(res$Generator)){
+    for(generator2 in unique(res$Generator)){
+      test = t.test(jitter(unlist(res[res$Generator==generator1,indic]),factor=0.01),jitter(unlist(res[res$Generator==generator2,indic]), factor=0.01))
+      if(test$p.value<=0.1){
+      show(paste0(indic," : ",generator1," - ",generator2," : pval = ",test$p.value))
+      }
+    }
+  }
+}
 
 # counts and hypervolumes
 
