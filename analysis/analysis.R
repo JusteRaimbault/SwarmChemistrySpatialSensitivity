@@ -34,10 +34,14 @@ ggsave(
 manova(data=res[,c("Generator","c1avg","c1std","c2avg","c2std", "c3avg", "c3std")],
                formula = cbind(c1avg,c1std,c2avg,c2std, c3avg, c3std)~Generator)
 
+gens=unique(res$Generator)
 for(indic in c("c1avg","c1std","c2avg","c2std", "c3avg", "c3std")){
-  for(generator1 in unique(res$Generator)){
-    for(generator2 in unique(res$Generator)){
-      test = t.test(jitter(unlist(res[res$Generator==generator1,indic]),factor=0.01),jitter(unlist(res[res$Generator==generator2,indic]), factor=0.01))
+  for(i in 1:(length(gens)-1)){
+    for(j in (i+1):length(gens)){
+      generator1 = gens[i]; generator2 = gens[j]
+      #test = t.test(jitter(unlist(res[res$Generator==generator1,indic]),factor=0.01),jitter(unlist(res[res$Generator==generator2,indic]), factor=0.01))
+      test = t.test(unlist(res[res$Generator==generator1,indic]),unlist(res[res$Generator==generator2,indic]))
+      
       if(test$p.value<=0.1){
       show(paste0(indic," : ",generator1," - ",generator2," : pval = ",test$p.value))
       }
