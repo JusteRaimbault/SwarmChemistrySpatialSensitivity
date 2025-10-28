@@ -8,7 +8,8 @@ library(GGally)
 source(paste0(Sys.getenv('CS_HOME'),'/Organisation/Models/Utils/R/plots.R'))
 
 #resprefix = '20240416_115624_PSE' # 494 individuals at generation 1000
-resprefix = '20240612_204324_PSE' # 714 at generation 1900, 758 at 2100
+#resprefix = '20240612_204324_PSE' # 714 at generation 1900, 758 at 2100
+resprefix = '20240613_080142_PSE'
 
 # read old pse format
 #res <- read_csv(file=paste0('openmole/pse/',resprefix,'/population1000.csv'),col_names = T)
