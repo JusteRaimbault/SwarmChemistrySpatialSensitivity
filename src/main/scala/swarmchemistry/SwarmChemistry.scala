@@ -2,10 +2,13 @@ package swarmchemistry
 
 import swarmchemistry.SwarmChemistry.CompetitionFunction
 
+import java.awt.image.BufferedImage
+import java.io.{File, IOException}
 import java.util.StringTokenizer
+import javax.imageio.ImageIO
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-import scala.util.control.Breaks._
+import scala.util.control.Breaks.*
 
 case class SwarmChemistry(
                            mutationRateAtTransmission: Double = 0.1,
@@ -805,15 +808,20 @@ object SwarmChemistry {
         case "split" => // simple split
           val xsplit = (rng.nextDouble()-0.5)*model.worldWidth*0.8
           val ysplit = (rng.nextDouble()-0.5)*model.worldHeight*0.8
+          //println(s"split : $xsplit - $ysplit")
           val quadrants = Seq.fill(4){rng.shuffle(model.competitionTypes).head}
+          //println(quadrants)
+          val counts = Array(0,0,0,0)
           Array.tabulate(model.spaceRasterWidth,model.spaceRasterHeight){case (i,j) =>
             val x = (i.toDouble/model.spaceRasterWidth.toDouble - 0.5)*model.worldWidth
             val y = (j.toDouble/model.spaceRasterHeight.toDouble - 0.5)*model.worldHeight
-            if (x < xsplit && y < ysplit) quadrants.head
-            if (x < xsplit && y > ysplit) quadrants(1)
-            if (x > xsplit && y < ysplit) quadrants(2)
-            if (x > xsplit && y > ysplit) quadrants(3)
-            quadrants.head
+            val value: CompetitionFunction = (x,y) match {
+              case (x,y) if x < xsplit && y < ysplit => quadrants.head
+              case (x,y) if x < xsplit && y > ysplit => quadrants(1)
+              case (x,y) if x > xsplit && y < ysplit =>  quadrants(2)
+              case (x,y) if x > xsplit && y > ysplit => quadrants(3)
+            }
+            value
           }
 
         case "zipf" => // hierarchical structure
@@ -828,7 +836,45 @@ object SwarmChemistry {
             if (prnorm(i)(j)> model.zipfInsideThreshold) io._1 else io._2
           }
       }
+
+      //println(Space.countCompetFunctions())
     }
+
+    def exportSpaceImage(file: String): Unit = {
+      val data = spatialCompetition.map(_.map {
+        case SwarmChemistry.Faster() => 0
+        case SwarmChemistry.Slower() => 64
+        case SwarmChemistry.Behind() => 128
+        case SwarmChemistry.Majority() => 192
+        case SwarmChemistry.MajorityRelative() => 255
+      })
+      val image = new BufferedImage(data.length, data.head.length, BufferedImage.TYPE_BYTE_GRAY)
+      val raster = image.getRaster
+      val values = for {
+        zi <- data.zipWithIndex
+        zj <- data(zi._2).zipWithIndex
+      } yield (zi._2, zj._2, zj._1)
+      values.foreach { case (i, j, v) => raster.setPixel(i, j, Array(v)) }
+      try
+        ImageIO.write(image, "png", new File(file))
+      catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    }
+
+    def countCompetFunctions(): Seq[Int] = {
+      val counts = Array(0,0,0,0,0)
+      spatialCompetition.flatten.foreach {
+        case SwarmChemistry.Faster() => counts(0) = counts(0) + 1
+        case SwarmChemistry.Slower() => counts(1) = counts(1) + 1
+        case SwarmChemistry.Behind() => counts(2) = counts(2) + 1
+        case SwarmChemistry.Majority() => counts(3) = counts(3) + 1
+        case SwarmChemistry.MajorityRelative() => counts(4) = counts(4) + 1
+      }
+      counts.toSeq
+    }
+
   }
 
 
